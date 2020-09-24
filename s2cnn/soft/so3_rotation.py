@@ -1,24 +1,30 @@
 # pylint: disable=C,R,E1101
-import torch
+import tensorflow as tf
 import numpy as np
 
 from .so3_fft import SO3_fft_real, SO3_ifft_real
-from s2cnn.utils.complex import complex_mm
 from functools import lru_cache
 from s2cnn.utils.decorator import cached_dirpklgz
 
 
+class SO3Rotation(tf.keras.layers.Layer):
+    def call(self, x, alpha, beta, gamma):
+        x = so3_rotation(x, alpha, beta, gamma)
+        return x
+
+
+@tf.function
 def so3_rotation(x, alpha, beta, gamma):
     '''
     :param x: [..., beta, alpha, gamma] (..., 2b, 2b, 2b)
     '''
-    b = x.size()[-1] // 2
-    x_size = x.size()
+    b = x.shape[-1] // 2
+    x_size = x.shape
 
-    Us = _setup_so3_rotation(b, alpha, beta, gamma, device_type=x.device.type, device_index=x.device.index)
+    Us = _setup_so3_rotation(b, alpha, beta, gamma)
 
     # fourier transform
-    x = SO3_fft_real.apply(x)  # [l * m * n, ..., complex]
+    x = SO3_fft_real.forward(x)  # [l * m * n, ..., complex]
 
     # rotated spectrum
     Fz_list = []
@@ -28,22 +34,22 @@ def so3_rotation(x, alpha, beta, gamma):
         size = L ** 2
 
         Fx = x[begin:begin+size]
-        Fx = Fx.view(L, -1, 2)  # [m, n * batch, complex]
+        Fx = tf.reshape(Fx, (L, -1))  # [m, n * batch]
 
-        U = Us[l].view(L, L, 2)  # [m, n, complex]
+        U = tf.reshape(Us[l], (L, L))  # [m, n]
 
-        Fz = complex_mm(U, Fx, conj_x=True)  # [m, n * batch, complex]
+        Fx = tf.math.conj(Fx)
+        Fz = tf.matmul(U, Fx)  # [m, n * batch, complex]
 
-        Fz = Fz.view(size, -1, 2)  # [m * n, batch, complex]
+        Fz = tf.reshape(Fz, (size, -1))  # [m * n, batch]
         Fz_list.append(Fz)
 
         begin += size
 
-    Fz = torch.cat(Fz_list, 0)  # [l * m * n, batch, complex]
-    z = SO3_ifft_real.apply(Fz)
+    Fz = tf.concat(Fz_list, 0)  # [l * m * n, batch]
+    z = SO3_ifft_real.forward(Fz)
 
-    z = z.contiguous()
-    z = z.view(*x_size)
+    z = tf.reshape(z, (*x_size))
 
     return z
 
@@ -62,11 +68,11 @@ def __setup_so3_rotation(b, alpha, beta, gamma):
     return Us
 
 
-@lru_cache(maxsize=32)
-def _setup_so3_rotation(b, alpha, beta, gamma, device_type, device_index):
+@ft.function
+def _setup_so3_rotation(b, alpha, beta, gamma):
     Us = __setup_so3_rotation(b, alpha, beta, gamma)
 
     # convert to torch Tensor
-    Us = [torch.tensor(U, dtype=torch.float32, device=torch.device(device_type, device_index)) for U in Us]  # pylint: disable=E1102
+    Us = [tf.convert_to_tensor(U, dtype=tf.float32) for U in Us]  # pylint: disable=E1102
 
     return Us

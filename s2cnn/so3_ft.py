@@ -1,10 +1,11 @@
 # pylint: disable=R,C,E1101
-import torch
+import tensorflow as tf
 import numpy as np
 from functools import lru_cache
 from s2cnn.utils.decorator import cached_dirpklgz
 
 
+@tf.function
 def so3_rft(x, b, grid):
     """
     Real Fourier Transform
@@ -14,13 +15,14 @@ def so3_rft(x, b, grid):
     :return: [l * m * n, ..., complex]
     """
     # F is the Fourier matrix
-    F = _setup_so3_ft(b, grid, device_type=x.device.type, device_index=x.device.index)  # [beta_alpha_gamma, l * m * n, complex]
+    F = _setup_so3_ft(b, grid)  # [beta_alpha_gamma, l * m * n, complex]
 
-    assert x.size(-1) == F.size(0)
+    assert x.shape[-1] == F.shape[0]
 
-    sz = x.size()
-    x = torch.einsum("ia,afc->fic", (x.view(-1, x.size(-1)), F.clone()))  # [l * m * n, ..., complex]
-    x = x.view(-1, *sz[:-1], 2)
+    sz = x.shape
+    x = tf.complex(x, tf.zeros_like(x))
+    x = tf.einsum("ia,af->fi", tf.reshape(x, (-1, x.shape[-1])), tf.identity(F))  # [l * m * n, ..., complex]
+    x = tf.reshape(x, (-1, *sz[:-1]))
     return x
 
 
@@ -48,15 +50,15 @@ def __setup_so3_ft(b, grid):
     # If we view it as float, we get a real matrix of shape (n_spatial, 2 * n_spectral)
     # In the so3_local_ft, we will multiply a batch of real (..., n_spatial) vectors x with this matrix F as xF.
     # The result is a (..., 2 * n_spectral) array that can be interpreted as a batch of complex vectors.
-    F = F.view('float').reshape((-1, n_spectral, 2))
+    # F = F.view('float').reshape((-1, n_spectral, 2))
     return F
 
 
-@lru_cache(maxsize=32)
+@tf.function
 def _setup_so3_ft(b, grid, device_type, device_index):
     F = __setup_so3_ft(b, grid)
 
     # convert to torch Tensor
-    F = torch.tensor(F.astype(np.float32), dtype=torch.float32, device=torch.device(device_type, device_index))  # pylint: disable=E1102
+    F = tf.convert_to_tensor(F, dtype=tf.complex64)  # pylint: disable=E1102
 
     return F

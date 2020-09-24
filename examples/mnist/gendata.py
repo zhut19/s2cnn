@@ -5,7 +5,7 @@ import pickle
 import numpy as np
 import argparse
 import lie_learn.spaces.S2 as S2
-from torchvision import datasets
+from tensorflow.keras import datasets
 
 
 NORTHPOLE_EPSILON = 1e-3
@@ -209,14 +209,9 @@ def main():
     args = parser.parse_args()
 
     print("getting mnist data")
-    trainset = datasets.MNIST(root=args.mnist_data_folder, train=True, download=True)
-    testset = datasets.MNIST(root=args.mnist_data_folder, train=False, download=True)
     mnist_train = {}
-    mnist_train['images'] = trainset.train_data.numpy()
-    mnist_train['labels'] = trainset.train_labels.numpy()
     mnist_test = {}
-    mnist_test['images'] = testset.test_data.numpy()
-    mnist_test['labels'] = testset.test_labels.numpy()
+    (mnist_train['images'], mnist_train['labels']), (mnist_test['images'], mnist_test['labels']) = datasets.mnist.load_data(path='mnist.npz')
     
     grid = get_projection_grid(b=args.bandwidth)
 
