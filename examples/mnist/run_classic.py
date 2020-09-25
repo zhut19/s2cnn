@@ -1,17 +1,11 @@
 # pylint: disable=E1101,R,C
 import numpy as np
-import torch.nn as nn
-import torch.nn.functional as F
-import torch
-import torch.utils.data as data_utils
+import tensorflow as tf
 import gzip
 import pickle
 import numpy as np
-from torch.autograd import Variable
 
 MNIST_PATH = "s2_mnist.gz"
-
-DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 NUM_EPOCHS = 20
 BATCH_SIZE = 32
