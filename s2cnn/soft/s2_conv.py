@@ -43,9 +43,9 @@ class S2Convolution(tf.keras.layers.Layer):
         :x:      [batch, feature_in,  beta, alpha]
         :return: [batch, feature_out, beta, alpha, gamma]
         '''
-        assert x.size(1) == self.nfeature_in
-        assert x.size(2) == 2 * self.b_in
-        assert x.size(3) == 2 * self.b_in
+        assert x.shape[1] == self.nfeature_in
+        assert x.shape[2] == 2 * self.b_in
+        assert x.shape[3] == 2 * self.b_in
         x = S2_fft_real.forward(x, self.b_out)  # [l * m, batch, feature_in]
         y = s2_rft(self.kernel * self.scaling, self.b_out, self.grid)  # [l * m, feature_in, feature_out]
         x = s2_mm(x, y)  # [l * m * n, batch, feature_out]
