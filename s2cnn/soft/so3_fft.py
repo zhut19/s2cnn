@@ -11,8 +11,8 @@ from s2cnn.utils.decorator import cached_dirpklgz
 @tf.function
 def so3_fft(x, for_grad=False, b_out=None):
     '''
-    :param x: [..., beta, alpha, gamma, complex]
-    :return: [l * m * n, ..., complex]
+    :param x: [..., beta, alpha, gamma]
+    :return: [l * m * n, ...]
     '''
     b_in = x.shape[-1] // 2
     assert x.shape[-1] == 2 * b_in

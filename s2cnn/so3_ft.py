@@ -55,7 +55,7 @@ def __setup_so3_ft(b, grid):
 
 
 @tf.function
-def _setup_so3_ft(b, grid, device_type, device_index):
+def _setup_so3_ft(b, grid):
     F = __setup_so3_ft(b, grid)
 
     # convert to torch Tensor

@@ -34,19 +34,18 @@ def so3_rotation(x, alpha, beta, gamma):
         size = L ** 2
 
         Fx = x[begin:begin+size]
-        Fx = tf.reshape(Fx, (L, -1))  # [m, n * batch]
+        Fx = tf.reshape(Fx, (L, -1, 2))  # [m, n * batch, complex]
 
-        U = tf.reshape(Us[l], (L, L))  # [m, n]
+        U = tf.reshape(Us[l], (L, L, 2))  # [m, n, complex]
 
-        Fx = tf.math.conj(Fx)
-        Fz = tf.matmul(U, Fx)  # [m, n * batch, complex]
+        Fz = complex_mm(U, Fx, conj_x=True)  # [m, n * batch, complex]
 
-        Fz = tf.reshape(Fz, (size, -1))  # [m * n, batch]
+        Fz = tf.reshape(Fz, (size, -1, 2))  # [m * n, batch, complex]
         Fz_list.append(Fz)
 
         begin += size
 
-    Fz = tf.concat(Fz_list, 0)  # [l * m * n, batch]
+    Fz = tf.concat(Fz_list, 0)  # [l * m * n, batch, complex]
     z = SO3_ifft_real.forward(Fz)
 
     z = tf.reshape(z, (*x_size))
@@ -68,8 +67,8 @@ def __setup_so3_rotation(b, alpha, beta, gamma):
     return Us
 
 
-@ft.function
-def _setup_so3_rotation(b, alpha, beta, gamma):
+@tf.function
+def _setup_so3_rotation(b, alpha, beta, gamma, device_type, device_index):
     Us = __setup_so3_rotation(b, alpha, beta, gamma)
 
     # convert to torch Tensor

@@ -15,7 +15,7 @@ def s2_rft(x, b, grid):
     :return: [l * m, ..., complex]
     """
     # F is the Fourier matrix
-    F = _setup_s2_ft(b, grid, device=x.device)  # [beta_alpha, l * m]
+    F = _setup_s2_ft(b, grid)  # [beta_alpha, l * m]
 
     assert x.shape[-1] == F.shape[0]
 
@@ -53,7 +53,7 @@ def __setup_s2_ft(b, grid):
 
 
 @tf.function
-def _setup_s2_ft(b, grid, device_type, device_index):
+def _setup_s2_ft(b, grid):
     F = __setup_s2_ft(b, grid)
 
     # convert to Tensor
